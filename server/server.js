@@ -1,3 +1,4 @@
+const _ = require('lodash');
 const express = require('express');
 const bodyParser = require('body-parser');
 const {ObjectID} = require('mongodb');
@@ -45,8 +46,69 @@ app.get('/todos/:id', (req, res) => {
 	}).catch((e) => res.send({'error': e}));
 });
 
+// Rota para deletar um Todo por ID
+app.delete('/todos/:id', (req, res) => {
+	var id = req.params.id;
+	if(!ObjectID.isValid(id)){
+		return res.status(404).send();
+	}
+	Todo.findByIdAndRemove(id).then((todo) => {
+		if(todo){
+			res.status(200).send();
+		}else{
+			res.status(404).send();
+		}
+	}).catch((e) => res.send({'error': e}));
+
+});
+
+
+// Rota para update (usando o metodo http Patch)
+app.patch('/todos/:id', (req, res) => {
+	var id = req.params.id;
+	// Utilizando o LoDash, a função pick busca na mensagem apenas os campos informados no array
+	var body = _.pick(req.body, ['text', 'completed']);
+
+	if(!ObjectID.isValid(id)){
+		return res.status(404).send();
+	}
+
+	if (_.isBoolean(body.completed) && body.completed){
+		// Seta a data do completedAt usando uma funcao do objeto Date 
+		body.completedAt = new Date().getTime();
+	}else{
+		body.completed = false;
+		body.completedAt = null;
+	}
+
+	Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then((todo) =>{
+		if(!todo){
+			res.status(404).send();
+		}
+
+		res.send({todo});
+
+	}).catch((e) => {
+		res.status(400).send();
+	});
+
+});
+
+// Rotas para Users
+
+app.post('/users', (req, res) => {
+	var body = _.pick(req.body, ['email', 'password', 'tokens']);
+	var user = new User(body);
+	user.save().then((newUser) => {
+		res.send(newUser);
+	}, (err) => {
+		res.status(400).send(err);
+	});
+})
+
+
 app.listen(port, ()=>{
-	console.log(`Started on port {port}`);
+	console.log(`Started on port ${port}`);
 });
 
 module.exports = {app};
