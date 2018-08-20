@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 const jwt = require('jsonwebtoken');
 const _ = require('lodash');
+const bcrypt = require('bcryptjs');
 // mongoose.Promise = global.Promise;
 // mongoose.connect('mongodb://localhost:27017/TodoApp');
 
@@ -84,6 +85,26 @@ UserSchema.statics.findByToken = function(token){
 		'tokens.access': 'auth'			
 	});
 };
+
+// Função chamada antes do save... Faz o Hash do password do usuario...
+UserSchema.pre('save', function(next){
+	var user = this;
+
+	if(user.isModified('password')){
+		// bcrypt gera um salt de 10 digitos
+		bcrypt.genSalt(10, (err, salt)=>{
+			// bcrypt encriptad o password com o salt e devolve uma hash, que é
+			// salva no lugar do password...
+			bcrypt.hash(user.password, salt, (err, hash)=>{
+				user.password = hash;
+				next();
+			});	
+		});
+
+	}else{
+		next();
+	}
+});
 
 // Adicionando o Schema ao Model
 var User = mongoose.model('User',UserSchema);
