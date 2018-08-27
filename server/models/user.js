@@ -86,6 +86,42 @@ UserSchema.statics.findByToken = function(token){
 	});
 };
 
+// Metodo que encontra o usuario pelo e-mail e senha
+UserSchema.statics.findByCredentials = function(email, password){
+	var User = this;
+	return User.findOne({email}).then((user)=>{
+		if(!user){
+			return Promise.reject();
+		}
+
+		// Retorna uma Promise que trata o bcrypt compare
+		return new Promise((resolve, reject) =>{
+			bcrypt.compare(password, user.password, (err, res)=>{
+				if(res){
+					console.log(user);
+					resolve(user);
+				}else{
+					reject();
+				}
+			});
+		});
+	});
+};
+
+UserSchema.methods.removeToken = function(token){
+
+	var user = this;
+	
+	return user.update({
+		// Usando a chave $pull, fazemos um delete baseado nos parametros passados no Objeto
+		$pull:{
+			tokens:{
+				token: token
+			}
+		}
+	});
+};
+
 // Função chamada antes do save... Faz o Hash do password do usuario...
 UserSchema.pre('save', function(next){
 	var user = this;
